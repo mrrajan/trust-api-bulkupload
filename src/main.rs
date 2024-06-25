@@ -1,12 +1,13 @@
 use std::fs;
 use reqwest::Url;
+use reqwest::blocking::Client;
 use rand::prelude::*;
 use serde_json::Value;
 use log::{info, error};
 use simplelog::*;
 use rand::distributions::Alphanumeric;
 
-async fn upload_sbom(path: &str, baseurl: &str, endpoint: &str, token: &str){
+fn upload_sbom(path: &str, baseurl: &str, endpoint: &str, token: &str){
     let file_path = fs::read_dir(path).unwrap();
     for file in file_path{
         let mut rng = rand::thread_rng();
@@ -22,14 +23,14 @@ async fn upload_sbom(path: &str, baseurl: &str, endpoint: &str, token: &str){
         let id = "test-bulk-".to_owned() + &rand_string + "-" + &random_number.to_string();
         let request_url_str = baseurl.to_string() + endpoint + "?id=" + &id;
         let req_url: Url = Url::parse(&request_url_str).expect("Error parsing");
-        let response = reqwest::Client::new().post(req_url).header("Authorization",format!("Bearer {}", token)).json(&json_content).send().await.unwrap();
+        let client = Client::builder().danger_accept_invalid_certs(true).build().expect("Failed");
+        let response = client.post(req_url).header("Authorization",format!("Bearer {}", token)).json(&json_content).send().expect("fail");
         info!("Response for the id {} is {}", id, response.status());
     }
     
 }
 
-#[tokio::main]
-async fn main(){
+fn main(){
     CombinedLogger::init(
         vec![
 
@@ -38,10 +39,10 @@ async fn main(){
         ]
     ).unwrap();
 
-    let path = "/home/rajanr/Documents/upload";
-    let base_url="https://sbom-trustification-tpa.apps.rhtpa-qe.tpa.rhocf-dev.net";
+    let path = "";
+    let base_url="";
     let endpoint = "/api/v1/sbom";
     let token = "";
-    upload_sbom(path, base_url, endpoint, token).await;
+    upload_sbom(path, base_url, endpoint, token);
     
 }
